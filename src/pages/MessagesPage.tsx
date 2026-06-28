@@ -452,11 +452,13 @@ export default function MessagesPage() {
     shouldScrollToBottomRef.current = true
     setConversations(prev => prev.map(item => item.id === conv.id ? convWithZeroUnread : item))
 
-    window.dispatchEvent(new CustomEvent('vozzap-chat-read', { detail: { conversationId: conv.id } }))
+    window.dispatchEvent(new CustomEvent('vozzap-chat-read', { detail: { clearAll: true, conversationId: conv.id } }))
 
     try {
       await fetchMessagesForConversation(convWithZeroUnread, true)
-      window.dispatchEvent(new CustomEvent('vozzap-chat-read', { detail: { conversationId: conv.id } }))
+      setConversations(prev => prev.map(item => item.id === conv.id ? convWithZeroUnread : item))
+      setSelectedConv(prev => prev ? { ...prev, unread_count: 0 } : prev)
+      window.dispatchEvent(new CustomEvent('vozzap-chat-read', { detail: { clearAll: true, conversationId: conv.id } }))
     } catch (err) {
       console.error('[SelectConversation] Exception:', err)
       setMessageError(`Erro: ${String(err)}`)

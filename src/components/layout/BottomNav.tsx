@@ -44,7 +44,11 @@ export default function BottomNav() {
       channel.subscribe()
     }
 
-    const handleChatRead = () => {
+    const handleChatRead = (event: any) => {
+      if (event?.detail?.clearAll) {
+        setUnreadMessages(0)
+        return
+      }
       loadUnread()
     }
 
