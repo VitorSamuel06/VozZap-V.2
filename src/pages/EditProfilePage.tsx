@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Camera, Save, ArrowLeft, Globe, Lock } from 'lucide-react'
+import { AlertTriangle, Camera, Save, ArrowLeft, Globe, Lock } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { supabase } from '@/services/supabaseClient'
 import { getInitials } from '@/utils/formatters'
@@ -16,6 +16,8 @@ export default function EditProfilePage() {
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
   const [saved, setSaved] = useState(false)
   const [selectedCoverFile, setSelectedCoverFile] = useState<File | null>(null)
   const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null)
@@ -103,6 +105,46 @@ export default function EditProfilePage() {
       setIsSaving(false)
       console.error('Erro ao salvar perfil:', err)
       alert('Não foi possível salvar. Tente novamente.')
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    if (!user) return
+    const confirmed = window.confirm(
+      'Tem certeza que deseja excluir sua conta? Esta ação é irreversível e apagará todos os seus dados.'
+    )
+    if (!confirmed) return
+
+    setDeleteError('')
+    setIsDeleting(true)
+
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+      if (sessionError) throw sessionError
+      const accessToken = sessionData?.session?.access_token
+      if (!accessToken) throw new Error('Sessão inválida. Faça login novamente.')
+
+      const response = await fetch('/api/delete-account', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+      })
+
+      const result = await response.json()
+      if (!response.ok) throw new Error(result?.error || result?.message || 'Erro ao excluir conta')
+
+      await supabase.auth.signOut()
+      setUser(null)
+      navigate('/login')
+    } catch (err) {
+      console.error('Erro ao excluir conta:', err)
+      const message = err instanceof Error ? err.message : 'Erro ao excluir conta'
+      setDeleteError(message)
+      alert('Não foi possível excluir a conta. Tente novamente.')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -297,7 +339,7 @@ export default function EditProfilePage() {
         {/* Save Button */}
         <button
           type="submit"
-          disabled={isSaving}
+          disabled={isSaving || isDeleting}
           className={`w-full py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 transition-colors ${
             saved
               ? 'bg-[#25D366] text-white'
@@ -313,6 +355,28 @@ export default function EditProfilePage() {
             </>
           )}
         </button>
+
+        <button
+          type="button"
+          disabled={isSaving || isDeleting}
+          onClick={handleDeleteAccount}
+          className="w-full py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 transition-colors bg-red-600 hover:bg-red-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white"
+        >
+          {isDeleting ? (
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <>
+              <AlertTriangle size={18} />
+              Excluir minha conta
+            </>
+          )}
+        </button>
+
+        {deleteError && (
+          <div className="rounded-xl bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-200">
+            {deleteError}
+          </div>
+        )}
       </form>
     </div>
   )
