@@ -374,9 +374,8 @@ export default function MessagesPage() {
 
   const fetchMessagesForConversation = async (conv: Conversation, markRead = false) => {
     try {
-      const otherUser = getOtherUser(conv)
       const currentUserId = currentUser?.id
-      const otherUserId = otherUser?.id
+      const otherUserId = conv.user_one_id === currentUserId ? conv.user_two_id : conv.user_one_id
       if (!currentUserId || !otherUserId) return
 
       console.log('[FetchMessages] carregando mensagens para:', { currentUserId, otherUserId })
@@ -439,14 +438,7 @@ export default function MessagesPage() {
           setSelectedConv(prev => prev ? { ...prev, unread_count: 0 } : prev)
         }
 
-        await refreshUnreadCounts(conversationsRef.current)
-        await loadConversations()
-
-        const refreshedConv = conversationsRef.current.find(c => c.id === conv.id)
-        if (refreshedConv) {
-          selectedConvRef.current = refreshedConv
-          setSelectedConv(refreshedConv)
-        }
+        window.dispatchEvent(new Event('vozzap-chat-read'))
       }
     } catch (err) {
       console.error('[FetchMessages] exception:', err)
