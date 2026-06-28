@@ -33,13 +33,13 @@ export default function BottomNav() {
 
     const subscribeUnread = () => {
       channel = supabase.channel(`messages-unread-${user.id}`)
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'direct_messages', filter: `recipient_id=eq.${user.id}` }, () => {
-          loadUnread()
-        })
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'direct_messages', filter: `recipient_id=eq.${user.id}` }, () => {
-          loadUnread()
-        })
-        .subscribe()
+      channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'direct_messages', filter: `recipient_id=eq.${user.id}` }, () => {
+        loadUnread()
+      })
+      channel.on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'direct_messages', filter: `recipient_id=eq.${user.id}` }, () => {
+        loadUnread()
+      })
+      channel.subscribe()
     }
 
     const handleChatRead = () => {

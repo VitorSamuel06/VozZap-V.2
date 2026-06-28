@@ -419,6 +419,7 @@ export default function MessagesPage() {
           console.error('[FetchMessages] Erro ao marcar como lido:', updateError)
         } else {
           console.log('[FetchMessages] Mensagens marcadas como lidas:', updatedData?.length)
+          window.dispatchEvent(new Event('vozzap-chat-read'))
         }
 
         const updatedConversations = conversationsRef.current.map(existingConv => {
@@ -449,14 +450,15 @@ export default function MessagesPage() {
   }
 
   const handleSelectConversation = async (conv: Conversation) => {
-    selectedConvRef.current = conv
-    setSelectedConv(conv)
+    const convWithZeroUnread = { ...conv, unread_count: 0 }
+    selectedConvRef.current = convWithZeroUnread
+    setSelectedConv(convWithZeroUnread)
     shouldScrollToBottomRef.current = true
+    setConversations(prev => prev.map(item => item.id === conv.id ? convWithZeroUnread : item))
+    window.dispatchEvent(new Event('vozzap-chat-read'))
 
     try {
-      await fetchMessagesForConversation(conv, true)
-      setConversations(prev => prev.map(item => item.id === conv.id ? { ...item, unread_count: 0 } : item))
-      setSelectedConv(prev => prev ? { ...prev, unread_count: 0 } : prev)
+      await fetchMessagesForConversation(convWithZeroUnread, true)
       window.dispatchEvent(new Event('vozzap-chat-read'))
     } catch (err) {
       console.error('[SelectConversation] Exception:', err)
