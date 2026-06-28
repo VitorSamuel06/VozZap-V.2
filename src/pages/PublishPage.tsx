@@ -32,6 +32,7 @@ export default function PublishPage() {
   const [_audioBlob, setAudioBlob] = useState<Blob | null>(null)
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [audioDuration, setAudioDuration] = useState(0)
+  const [isDragActive, setIsDragActive] = useState(false)
 
   const normalizeDuration = (value: number | undefined | null): number => {
     if (Number.isFinite(value) && value > 0) {
@@ -59,8 +60,7 @@ export default function PublishPage() {
     setMode('form')
   }
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+  const processSelectedFile = (file: File | null | undefined) => {
     if (!file) return
 
     if (!file.type.startsWith('audio/')) {
@@ -107,6 +107,29 @@ export default function PublishPage() {
     audio.load()
 
     setMode('form')
+  }
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    processSelectedFile(e.target.files?.[0])
+  }
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragActive(false)
+    processSelectedFile(e.dataTransfer.files?.[0])
+  }
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragActive(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragActive(false)
   }
 
   const validate = () => {
@@ -367,18 +390,25 @@ export default function PublishPage() {
             </div>
           </button>
 
-          <button
+          <div
             onClick={() => fileInputRef.current?.click()}
-            className="flex flex-col items-center gap-4 p-8 bg-white dark:bg-[#1C1C1C] rounded-2xl border-2 border-[#ECE5DD] dark:border-[#30363D] hover:border-[#25D366] hover:shadow-md transition-all group"
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`flex flex-col items-center gap-4 p-8 bg-white dark:bg-[#1C1C1C] rounded-2xl border-2 transition-all group cursor-pointer ${
+              isDragActive
+                ? 'border-[#25D366] shadow-md bg-[#f7fff9] dark:bg-[#112018]'
+                : 'border-[#ECE5DD] dark:border-[#30363D] hover:border-[#25D366] hover:shadow-md'
+            }`}
           >
             <div className="w-16 h-16 bg-[#ECE5DD] dark:bg-[#0D1117] rounded-full flex items-center justify-center group-hover:bg-[#25D366] transition-colors">
               <Upload size={28} className="text-[#25D366] group-hover:text-white transition-colors" />
             </div>
             <div className="text-center">
-              <p className="font-bold text-[#111827] dark:text-[#E6E6E6]">Upload</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Envie um arquivo de áudio</p>
+              <p className="font-bold text-[#111827] dark:text-[#E6E6E6]">Upload / Arraste</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Envie um arquivo de áudio ou arraste aqui</p>
             </div>
-          </button>
+          </div>
 
           <input
             ref={fileInputRef}
