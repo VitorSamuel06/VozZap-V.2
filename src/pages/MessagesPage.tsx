@@ -413,8 +413,8 @@ export default function MessagesPage() {
         const { data: updatedData, error: updateError } = await supabase
           .from('direct_messages')
           .update({ is_read: true, read_at: new Date().toISOString() })
+          .eq('conversation_id', conv.id)
           .eq('recipient_id', currentUserId)
-          .eq('sender_id', otherUserId)
           .eq('is_read', false)
           .select('id')
 
