@@ -64,9 +64,11 @@ export default function PublishPage() {
     const fileType = file.type.toLowerCase()
     const fileName = file.name.toLowerCase()
     const supportedExtensions = ['.mp3', '.wav', '.ogg', '.oga', '.m4a', '.aac', '.webm', '.opus', '.flac', '.mpeg', '.mpga']
+    const supportedMimeTypes = ['audio/mpeg', 'audio/mp3', 'audio/mpga', 'audio/x-mpeg', 'audio/x-mpeg-3']
 
     return (
       fileType.startsWith('audio/') ||
+      supportedMimeTypes.includes(fileType) ||
       fileType.startsWith('application/ogg') ||
       supportedExtensions.some(extension => fileName.endsWith(extension))
     )
