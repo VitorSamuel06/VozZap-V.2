@@ -1,9 +1,56 @@
+import { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import { Home, Search, PlusCircle, MessageCircle, User } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
+import { supabase } from '@/services/supabaseClient'
 
 export default function BottomNav() {
   const { user } = useAuthStore()
+  const [unreadMessages, setUnreadMessages] = useState(0)
+
+  useEffect(() => {
+    if (!user?.id) {
+      setUnreadMessages(0)
+      return
+    }
+
+    let channel: any
+    const loadUnread = async () => {
+      try {
+        const { data, count, error } = await supabase
+          .from('direct_messages')
+          .select('id', { count: 'exact', head: true })
+          .eq('recipient_id', user.id)
+          .eq('is_read', false)
+
+        if (!error) {
+          setUnreadMessages(count ?? 0)
+        }
+      } catch (err) {
+        console.error('Erro ao carregar mensagens não lidas:', err)
+      }
+    }
+
+    const subscribeUnread = () => {
+      channel = supabase.channel(`messages-unread-${user.id}`)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'direct_messages', filter: `recipient_id=eq.${user.id}` }, () => {
+          loadUnread()
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'direct_messages', filter: `recipient_id=eq.${user.id}` }, () => {
+          loadUnread()
+        })
+        .subscribe()
+    }
+
+    loadUnread()
+    subscribeUnread()
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel)
+      }
+    }
+  }, [user?.id])
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-[#1C1C1C] border-t border-[#ECE5DD] dark:border-[#30363D] shadow-lg bottom-nav">
@@ -49,12 +96,15 @@ export default function BottomNav() {
         <NavLink
           to="/messages"
           className={({ isActive }) =>
-            `flex flex-col items-center gap-0.5 p-1.5 sm:p-2 rounded-xl transition-colors ${
+            `relative flex flex-col items-center gap-0.5 p-1.5 sm:p-2 rounded-xl transition-colors ${
               isActive ? 'text-[#25D366]' : 'text-gray-500 dark:text-gray-400'
             }`
           }
         >
           <MessageCircle size={20} />
+          {unreadMessages > 0 && (
+            <span className="absolute -top-1 -right-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#25D366] px-1.5 text-[10px] font-semibold text-white">{unreadMessages}</span>
+          )}
           <span className="text-xs font-medium">Chat</span>
         </NavLink>
 

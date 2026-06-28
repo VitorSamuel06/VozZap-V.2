@@ -32,6 +32,7 @@ export default function MessagesPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const shouldScrollToBottomRef = useRef(true)
+  const previousMessagesLengthRef = useRef(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const recordingChunksRef = useRef<BlobPart[]>([])
@@ -134,7 +135,7 @@ export default function MessagesPage() {
   const isAtBottom = () => {
     const container = messagesContainerRef.current
     if (!container) return true
-    return container.scrollHeight - container.scrollTop - container.clientHeight < 32
+    return container.scrollHeight - container.scrollTop - container.clientHeight < 80
   }
 
   const handleMessagesScroll = () => {
@@ -142,8 +143,14 @@ export default function MessagesPage() {
   }
 
   useEffect(() => {
-    if (!messagesEndRef.current) return
-    if (shouldScrollToBottomRef.current) {
+    if (!messagesEndRef.current || !messagesContainerRef.current) return
+
+    const previousLength = previousMessagesLengthRef.current
+    const currentLength = messages.length
+    const hasNewMessage = currentLength > previousLength
+    previousMessagesLengthRef.current = currentLength
+
+    if (shouldScrollToBottomRef.current && hasNewMessage) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [messages])
