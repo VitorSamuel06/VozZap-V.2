@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { Home, Search, PlusCircle, MessageCircle, User } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { supabase } from '@/services/supabaseClient'
@@ -7,6 +7,8 @@ import { supabase } from '@/services/supabaseClient'
 export default function BottomNav() {
   const { user } = useAuthStore()
   const [unreadMessages, setUnreadMessages] = useState(0)
+
+  const location = useLocation()
 
   useEffect(() => {
     if (!user?.id) {
@@ -57,6 +59,28 @@ export default function BottomNav() {
       window.removeEventListener('vozzap-chat-read', handleChatRead)
     }
   }, [user?.id])
+
+  useEffect(() => {
+    if (location.pathname === '/messages' && user?.id) {
+      const loadUnread = async () => {
+        try {
+          const { count, error } = await supabase
+            .from('direct_messages')
+            .select('id', { count: 'exact', head: true })
+            .eq('recipient_id', user.id)
+            .eq('is_read', false)
+
+          if (!error) {
+            setUnreadMessages(count ?? 0)
+          }
+        } catch (err) {
+          console.error('Erro ao recarregar mensagens não lidas na rota de chat:', err)
+        }
+      }
+
+      loadUnread()
+    }
+  }, [location.pathname, user?.id])
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-[#1C1C1C] border-t border-[#ECE5DD] dark:border-[#30363D] shadow-lg bottom-nav">
