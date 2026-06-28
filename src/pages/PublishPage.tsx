@@ -60,10 +60,22 @@ export default function PublishPage() {
     setMode('form')
   }
 
+  const isAudioFile = (file: File) => {
+    const fileType = file.type.toLowerCase()
+    const fileName = file.name.toLowerCase()
+    const supportedExtensions = ['.mp3', '.wav', '.ogg', '.oga', '.m4a', '.aac', '.webm', '.opus', '.flac', '.mpeg', '.mpga']
+
+    return (
+      fileType.startsWith('audio/') ||
+      fileType.startsWith('application/ogg') ||
+      supportedExtensions.some(extension => fileName.endsWith(extension))
+    )
+  }
+
   const processSelectedFile = (file: File | null | undefined) => {
     if (!file) return
 
-    if (!file.type.startsWith('audio/')) {
+    if (!isAudioFile(file)) {
       alert('Por favor, selecione um arquivo de áudio.')
       return
     }
