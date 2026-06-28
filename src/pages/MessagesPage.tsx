@@ -106,6 +106,10 @@ export default function MessagesPage() {
   }, [currentUser?.id])
 
   useEffect(() => {
+    window.dispatchEvent(new Event('vozzap-chat-read'))
+  }, [])
+
+  useEffect(() => {
     const fetchAvailableUsers = async () => {
       if (!currentUser?.id) return
       setUsersLoading(true)
@@ -455,7 +459,6 @@ export default function MessagesPage() {
     setSelectedConv(convWithZeroUnread)
     shouldScrollToBottomRef.current = true
     setConversations(prev => prev.map(item => item.id === conv.id ? convWithZeroUnread : item))
-    window.dispatchEvent(new Event('vozzap-chat-read'))
 
     try {
       await fetchMessagesForConversation(convWithZeroUnread, true)
