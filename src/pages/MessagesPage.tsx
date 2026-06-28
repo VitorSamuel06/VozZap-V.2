@@ -1038,8 +1038,12 @@ export default function MessagesPage() {
                     onClick={() => openOrCreateConversation(u)}
                     className="w-full flex items-center gap-3 p-4 hover:bg-[#ECE5DD] dark:hover:bg-[#30363D] transition-colors text-left"
                   >
-                    <div className="w-10 h-10 rounded-full bg-[#25D366] flex items-center justify-center text-white font-bold text-sm">
-                      {getInitials(u.full_name, u.username)}
+                    <div className="w-10 h-10 rounded-full overflow-hidden bg-[#25D366] flex items-center justify-center text-white font-bold text-sm">
+                      {u.avatar_url ? (
+                        <img src={u.avatar_url} alt={u.username} className="w-full h-full object-cover" />
+                      ) : (
+                        getInitials(u.full_name, u.username)
+                      )}
                     </div>
                     <div>
                       <p className="font-semibold text-[#111827] dark:text-[#E6E6E6] text-sm">{u.full_name || u.username}</p>

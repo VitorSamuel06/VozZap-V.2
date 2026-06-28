@@ -2,6 +2,18 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { Play, Pause, Download, Volume2, VolumeX } from 'lucide-react'
 import { formatTime } from '@/utils/formatters'
 
+const activeAudioElements = new Set<HTMLAudioElement>()
+
+const pauseAllAudio = () => {
+  activeAudioElements.forEach(audio => {
+    try {
+      audio.pause()
+    } catch {
+      // ignore paused audio errors
+    }
+  })
+}
+
 interface AudioPlayerProps {
   src: string
   duration?: number
@@ -36,7 +48,13 @@ export default function AudioPlayer({ src, duration, onPlay, onLoadedMetadata, c
         setAudioDuration(loadedDuration)
       }
     }
-    const handleEnded = () => { setIsPlaying(false); setCurrentTime(0) }
+    const handleEnded = () => {
+      setIsPlaying(false)
+      setCurrentTime(0)
+    }
+    const handlePause = () => {
+      setIsPlaying(false)
+    }
     const handleCanPlay = () => setIsLoaded(true)
 
     const handleLoadedMetadata = () => {
@@ -66,9 +84,11 @@ export default function AudioPlayer({ src, duration, onPlay, onLoadedMetadata, c
     }
 
     audio.crossOrigin = 'anonymous'
+    activeAudioElements.add(audio)
 
     audio.addEventListener('timeupdate', handleTimeUpdate)
     audio.addEventListener('ended', handleEnded)
+    audio.addEventListener('pause', handlePause)
     audio.addEventListener('loadedmetadata', handleLoadedMetadata)
     audio.addEventListener('loadeddata', handleLoadedData)
     audio.addEventListener('durationchange', handleDurationChange)
@@ -82,10 +102,12 @@ export default function AudioPlayer({ src, duration, onPlay, onLoadedMetadata, c
     return () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate)
       audio.removeEventListener('ended', handleEnded)
+      audio.removeEventListener('pause', handlePause)
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata)
       audio.removeEventListener('loadeddata', handleLoadedData)
       audio.removeEventListener('durationchange', handleDurationChange)
       audio.removeEventListener('canplaythrough', handleCanPlay)
+      activeAudioElements.delete(audio)
     }
   }, [])
 
@@ -116,6 +138,7 @@ export default function AudioPlayer({ src, duration, onPlay, onLoadedMetadata, c
       return
     }
 
+    pauseAllAudio()
     playActionRef.current = true
 
     try {
