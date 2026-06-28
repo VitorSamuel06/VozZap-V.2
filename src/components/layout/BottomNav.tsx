@@ -17,7 +17,7 @@ export default function BottomNav() {
     let channel: any
     const loadUnread = async () => {
       try {
-        const { data, count, error } = await supabase
+        const { count, error } = await supabase
           .from('direct_messages')
           .select('id', { count: 'exact', head: true })
           .eq('recipient_id', user.id)
@@ -42,13 +42,19 @@ export default function BottomNav() {
         .subscribe()
     }
 
+    const handleChatRead = () => {
+      loadUnread()
+    }
+
     loadUnread()
     subscribeUnread()
+    window.addEventListener('vozzap-chat-read', handleChatRead)
 
     return () => {
       if (channel) {
         supabase.removeChannel(channel)
       }
+      window.removeEventListener('vozzap-chat-read', handleChatRead)
     }
   }, [user?.id])
 

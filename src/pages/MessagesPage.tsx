@@ -455,6 +455,9 @@ export default function MessagesPage() {
 
     try {
       await fetchMessagesForConversation(conv, true)
+      setConversations(prev => prev.map(item => item.id === conv.id ? { ...item, unread_count: 0 } : item))
+      setSelectedConv(prev => prev ? { ...prev, unread_count: 0 } : prev)
+      window.dispatchEvent(new Event('vozzap-chat-read'))
     } catch (err) {
       console.error('[SelectConversation] Exception:', err)
       setMessageError(`Erro: ${String(err)}`)
@@ -813,10 +816,15 @@ export default function MessagesPage() {
                         {formatTimeAgo(conv.updated_at)}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                         {conv.last_message?.content || 'Iniciar conversa'}
                       </p>
+                      {conv.unread_count ? (
+                        <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-[#25D366] text-[10px] font-semibold text-white">
+                          {conv.unread_count}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                 </button>
