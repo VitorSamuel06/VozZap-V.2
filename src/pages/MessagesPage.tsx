@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Search, Send, Mic, ArrowLeft, Check, CheckCheck, Edit2, Trash2, X, Save } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { supabase } from '@/services/supabaseClient'
@@ -7,6 +8,7 @@ import type { Conversation, Message, User } from '@/types'
 import AudioPlayer from '@/components/feed/AudioPlayer'
 
 export default function MessagesPage() {
+  const navigate = useNavigate()
   const { user: currentUser } = useAuthStore()
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedConv, setSelectedConv] = useState<Conversation | null>(null)
@@ -779,15 +781,22 @@ export default function MessagesPage() {
                   className={`w-full flex items-center gap-3 p-4 hover:bg-[#ECE5DD] dark:hover:bg-[#30363D] transition-colors text-left ${isActive ? 'bg-[#ECE5DD] dark:bg-[#30363D]' : ''}`}
                 >
                   <div className="relative">
-                    <div className="w-12 h-12 rounded-full bg-[#25D366] flex items-center justify-center text-white font-bold flex-shrink-0">
-                      {other?.avatar_url ? (
-                        <img src={other.avatar_url} alt={other.username} className="w-full h-full rounded-full object-cover" />
-                      ) : (
-                        getInitials(other?.full_name ?? null, other?.username ?? 'U')
-                      )}
-                    </div>
-                    <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-[#25D366] rounded-full border-2 border-white dark:border-[#1C1C1C]" />
-                  </div>
+                  <button
+                    type="button"
+                    onClick={e => {
+                      e.stopPropagation()
+                      if (other) navigate(`/profile/${other.username}`)
+                    }}
+                    className="w-12 h-12 rounded-full bg-[#25D366] flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden focus:outline-none focus:ring-2 focus:ring-[#25D366] transition"
+                  >
+                    {other?.avatar_url ? (
+                      <img src={other.avatar_url} alt={other.username} className="w-full h-full rounded-full object-cover" />
+                    ) : (
+                      getInitials(other?.full_name ?? null, other?.username ?? 'U')
+                    )}
+                  </button>
+                  <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-[#25D366] rounded-full border-2 border-white dark:border-[#1C1C1C]" />
+                </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-0.5">
                       <p className="font-semibold text-[#111827] dark:text-[#E6E6E6] text-sm truncate">
@@ -821,13 +830,17 @@ export default function MessagesPage() {
             >
               <ArrowLeft size={20} />
             </button>
-            <div className="w-10 h-10 rounded-full bg-[#25D366] flex items-center justify-center text-white font-bold flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => otherUser && navigate(`/profile/${otherUser.username}`)}
+              className="w-10 h-10 rounded-full bg-[#25D366] flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden focus:outline-none focus:ring-2 focus:ring-[#25D366] transition"
+            >
               {otherUser?.avatar_url ? (
                 <img src={otherUser.avatar_url} alt={otherUser.username} className="w-full h-full rounded-full object-cover" />
               ) : (
                 getInitials(otherUser?.full_name ?? null, otherUser?.username ?? 'U')
               )}
-            </div>
+            </button>
             <div>
               <p className="font-semibold text-[#111827] dark:text-[#E6E6E6] text-sm">
                 {otherUser?.full_name || otherUser?.username}

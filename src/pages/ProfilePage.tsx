@@ -17,8 +17,13 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [isFollowing, setIsFollowing] = useState(false)
   const [followersCount, setFollowersCount] = useState(0)
+  const [followingCount, setFollowingCount] = useState(0)
   const [showFollowers, setShowFollowers] = useState(false)
   const [showFollowing, setShowFollowing] = useState(false)
+  const [followers, setFollowers] = useState<User[]>([])
+  const [following, setFollowing] = useState<User[]>([])
+  const [followersLoading, setFollowersLoading] = useState(false)
+  const [followingLoading, setFollowingLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'audio' | 'liked'>('audio')
 
   const isOwner = currentUser?.username === username
@@ -42,7 +47,14 @@ export default function ProfilePage() {
 
         if (user) {
           setProfile(user)
-          setFollowersCount(user.followers_count || 0)
+
+          const [{ data: followersData }, { data: followingData }] = await Promise.all([
+            supabase.from('follows').select('id').eq('following_id', user.id),
+            supabase.from('follows').select('id').eq('follower_id', user.id),
+          ])
+
+          setFollowersCount(followersData?.length ?? 0)
+          setFollowingCount(followingData?.length ?? 0)
 
           if (currentUser?.id) {
             const { data: followData } = await supabase
@@ -100,6 +112,52 @@ export default function ProfilePage() {
       fetchProfile()
     }
   }, [username, currentUser?.id, currentUser?.avatar_url])
+
+  useEffect(() => {
+    if (!showFollowers || !profile) return
+
+    const fetchFollowers = async () => {
+      setFollowersLoading(true)
+      try {
+        const { data, error } = await supabase
+          .from('follows')
+          .select('follower: follower_id (id, username, full_name, avatar_url)')
+          .eq('following_id', profile.id)
+
+        if (error) throw error
+        setFollowers((data ?? []).map((row: any) => row.follower))
+      } catch (err) {
+        console.error('Erro ao carregar seguidores:', err)
+      } finally {
+        setFollowersLoading(false)
+      }
+    }
+
+    fetchFollowers()
+  }, [showFollowers, profile])
+
+  useEffect(() => {
+    if (!showFollowing || !profile) return
+
+    const fetchFollowing = async () => {
+      setFollowingLoading(true)
+      try {
+        const { data, error } = await supabase
+          .from('follows')
+          .select('following: following_id (id, username, full_name, avatar_url)')
+          .eq('follower_id', profile.id)
+
+        if (error) throw error
+        setFollowing((data ?? []).map((row: any) => row.following))
+      } catch (err) {
+        console.error('Erro ao carregar seguidos:', err)
+      } finally {
+        setFollowingLoading(false)
+      }
+    }
+
+    fetchFollowing()
+  }, [showFollowing, profile])
 
   const handleFollow = () => {
     if (!currentUser) return alert('Você precisa estar logado para seguir usuários')
@@ -238,7 +296,7 @@ export default function ProfilePage() {
             <span className="text-xs text-gray-500 dark:text-gray-400">Seguidores</span>
           </button>
           <button onClick={() => setShowFollowing(true)} className="flex flex-col items-center hover:text-[#25D366] transition-colors">
-            <span className="font-bold text-lg text-[#111827] dark:text-[#E6E6E6]">{formatCount(profile.following_count || 0)}</span>
+            <span className="font-bold text-lg text-[#111827] dark:text-[#E6E6E6]">{formatCount(followingCount)}</span>
             <span className="text-xs text-gray-500 dark:text-gray-400">Seguindo</span>
           </button>
           <div className="flex flex-col items-center">
@@ -327,7 +385,8 @@ export default function ProfilePage() {
       {showFollowers && (
         <UserListModal
           title="Seguidores"
-          users={MOCK_USERS.slice(0, 3)}
+          users={followers}
+          loading={followersLoading}
           onClose={() => setShowFollowers(false)}
         />
       )}
@@ -335,7 +394,8 @@ export default function ProfilePage() {
       {showFollowing && (
         <UserListModal
           title="Seguindo"
-          users={MOCK_USERS.slice(0, 2)}
+          users={following}
+          loading={followingLoading}
           onClose={() => setShowFollowing(false)}
         />
       )}
@@ -343,7 +403,9 @@ export default function ProfilePage() {
   )
 }
 
-function UserListModal({ title, users, onClose }: { title: string; users: User[]; onClose: () => void }) {
+function UserListModal({ title, users, loading, onClose }: { title: string; users: User[]; loading: boolean; onClose: () => void }) {
+  const emptyMessage = title === 'Seguidores' ? 'Ainda não há seguidores.' : 'Ainda não segue ninguém.'
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="w-full sm:w-96 bg-white dark:bg-[#1C1C1C] sm:rounded-2xl rounded-t-2xl overflow-hidden animate-fade-in">
@@ -352,17 +414,35 @@ function UserListModal({ title, users, onClose }: { title: string; users: User[]
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">✕</button>
         </div>
         <div className="max-h-80 overflow-y-auto divide-y divide-[#ECE5DD] dark:divide-[#30363D]">
-          {users.map(u => (
-            <Link key={u.id} to={`/profile/${u.username}`} onClick={onClose} className="flex items-center gap-3 p-4 hover:bg-[#ECE5DD] dark:hover:bg-[#30363D] transition-colors">
-              <div className="w-10 h-10 rounded-full bg-[#25D366] flex items-center justify-center text-white font-bold text-sm">
-                {getInitials(u.full_name, u.username)}
+          {loading ? (
+            Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="p-4 flex items-center gap-3 animate-pulse">
+                <div className="w-10 h-10 rounded-full bg-[#ECE5DD] dark:bg-[#30363D]" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 w-3/4 rounded bg-[#ECE5DD] dark:bg-[#30363D]" />
+                  <div className="h-3 w-1/2 rounded bg-[#ECE5DD] dark:bg-[#30363D]" />
+                </div>
               </div>
-              <div>
-                <p className="font-semibold text-[#111827] dark:text-[#E6E6E6] text-sm">{u.full_name}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">@{u.username}</p>
-              </div>
-            </Link>
-          ))}
+            ))
+          ) : users.length === 0 ? (
+            <div className="p-4 text-sm text-gray-500 dark:text-gray-400">{emptyMessage}</div>
+          ) : (
+            users.map(u => (
+              <Link key={u.id} to={`/profile/${u.username}`} onClick={onClose} className="flex items-center gap-3 p-4 hover:bg-[#ECE5DD] dark:hover:bg-[#30363D] transition-colors">
+                <div className="w-10 h-10 rounded-full bg-[#25D366] flex items-center justify-center text-white font-bold text-sm overflow-hidden">
+                  {u.avatar_url ? (
+                    <img src={u.avatar_url} alt={u.username} className="w-full h-full object-cover" />
+                  ) : (
+                    getInitials(u.full_name, u.username)
+                  )}
+                </div>
+                <div>
+                  <p className="font-semibold text-[#111827] dark:text-[#E6E6E6] text-sm">{u.full_name || u.username}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">@{u.username}</p>
+                </div>
+              </Link>
+            ))
+          )}
         </div>
       </div>
     </div>
