@@ -484,6 +484,12 @@ export default function FeedPage() {
     if (delta === 0) return
 
     try {
+      if (field === 'plays_count') {
+        const { error } = await supabase.rpc('increment_publication_play_count', { publication_id: id })
+        if (error) throw error
+        return
+      }
+
       const { data: currentRow, error: fetchError } = await supabase
         .from('publications')
         .select(field)

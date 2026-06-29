@@ -433,6 +433,22 @@ CREATE TRIGGER decrement_pub_comments_on_delete AFTER UPDATE ON comments
   FOR EACH ROW WHEN (OLD.is_deleted = FALSE AND NEW.is_deleted = TRUE)
   EXECUTE FUNCTION decrement_publication_comments();
 
+CREATE OR REPLACE FUNCTION increment_publication_play_count(publication_id UUID)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  UPDATE publications
+  SET plays_count = GREATEST(0, COALESCE(plays_count, 0) + 1)
+  WHERE id = publication_id;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION increment_publication_play_count(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION increment_publication_play_count(UUID) TO anon;
+
 -- Função: Incrementar publications_count
 CREATE OR REPLACE FUNCTION increment_user_publications()
 RETURNS TRIGGER AS $$
